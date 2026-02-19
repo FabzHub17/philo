@@ -45,6 +45,20 @@ void	print_state(t_philo *philo, char *msg)
 	pthread_mutex_unlock(&philo->rules->print_mutex);
 }
 
+int	ft_atoi(const char *str)
+{
+	int	result;
+
+	result = 0;
+	while (*str == ' ' || (*str >= 9 && *str <= 13))
+		str++;
+	if (*str == '+')
+		str++;
+	while (*str >= '0' && *str <= '9')
+		result = result * 10 + (*str++ - '0');
+	return (result);
+}
+
 
 /* UTILS.C  
 get_time_ms → restituisce il timestamp corrente in millisecondi
