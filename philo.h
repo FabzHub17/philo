@@ -44,8 +44,20 @@ typedef struct s_philo
     pthread_t thread;
     pthread_mutex_t *left_fork;
     pthread_mutex_t *right_fork;
+    pthread_mutex_t meal_mutex;     
 
     t_rules *rules;
 }   t_philo;
+
+// init.c
+int	init_rules(t_rules *rules, int ac, char **av);
+int	init_philos(t_rules *rules, t_philo **philos);
+static int	init_forks(t_rules *rules);
+
+// utils.c
+long	get_time_ms(void);
+void	ft_usleep(long ms);
+void	print_state(t_philo *philo, char *msg);
+int	ft_atoi(const char *str);
 
 #endif
