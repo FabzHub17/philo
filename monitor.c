@@ -1,12 +1,15 @@
 #include "philo.h"
 
-static void	set_dead(t_philo *philo)
+static void	set_dead(t_rules *rules)
 {
-	pthread_mutex_lock(&philo->rules->death_mutex);
-	philo->rules->dead = 1;
-	pthread_mutex_unlock(&philo->rules->death_mutex);
+    pthread_mutex_lock(&rules->death_mutex);
+    rules->dead = 1;
+    pthread_mutex_unlock(&rules->death_mutex);
 }
 
+/*
+** Migliorato: ora passiamo rules invece di un filosofo specifico
+*/
 static int	check_death(t_philo *philos)
 {
 	int		i;
@@ -20,10 +23,12 @@ static int	check_death(t_philo *philos)
 		pthread_mutex_lock(&philos[i].meal_mutex);
 		time_since_meal = get_time_ms() - philos[i].time_of_last_meal;
 		pthread_mutex_unlock(&philos[i].meal_mutex);
-		if (time_since_meal >= rules->time_die)
+		
+		if (time_since_meal > rules->time_die)  // > invece di >= per sicurezza
 		{
-			set_dead(&philos[i]);
+			// IMPORTANTE: stampa DOPO aver settato dead, così print_state funziona
 			print_state(&philos[i], "died");
+			set_dead(rules);
 			return (1);
 		}
 		i++;
@@ -51,7 +56,8 @@ static int	check_all_ate(t_philo *philos)
 		pthread_mutex_unlock(&philos[i].meal_mutex);
 		i++;
 	}
-	set_dead(&philos[0]);
+	// Tutti hanno mangiato abbastanza, ma non sono "morti" — usiamo set_dead solo per fermare la simulazione
+	set_dead(rules);  // settiamo dead per fermare i filosofi, anche se non sono "morti"
 	return (1);
 }
 
@@ -60,11 +66,13 @@ void	*monitor_routine(void *arg)
 	t_philo	*philos;
 
 	philos = (t_philo *)arg;
+	// Piccolo ritardo iniziale per dare tempo ai filosofi di partire
+	usleep(1000);
 	while (1)
 	{
 		if (check_death(philos) || check_all_ate(philos))
 			return (NULL);
-		usleep(500);
+		usleep(500); // Controllo ogni 500µs (entro i 10ms richiesti)
 	}
 	return (NULL);
 }
@@ -79,8 +87,8 @@ morte entro i 10ms richiesti dal subject, abbastanza lento da non martellare
 il processore.
 
 Il trucco di set_dead nel caso check_all_ate
-Quando tutti hanno mangiato abbastanza, usiamo set_dead(&philos[0]) — 
-passiamo il primo filosofo solo per accedere a rules. Non stiamo dicendo 
+Quando tutti hanno mangiato abbastanza, usiamo set_dead(rules) — 
+passiamo rules direttamente. Non stiamo dicendo 
 che il filosofo 1 è morto, stiamo solo settando il flag globale rules->dead = 1 
 per fermare la simulazione. I filosofi nel loro loop controllano questo flag e si fermano da soli.
 

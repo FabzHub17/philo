@@ -45,18 +45,66 @@ void	print_state(t_philo *philo, char *msg)
 	pthread_mutex_unlock(&philo->rules->print_mutex);
 }
 
-int	ft_atoi(const char *str)
+static int	is_digit(char c)
 {
-	int	result;
+	return (c >= '0' && c <= '9');
+}
 
-	result = 0;
-	while (*str == ' ' || (*str >= 9 && *str <= 13))
+static int	is_space(char c)
+{
+	return (c == ' ' || (c >= 9 && c <= 13));
+}
+
+static int	check_overflow(long num, char c, int sign)
+{
+	long	next;
+
+	next = num * 10 + (c - '0');
+	if (sign == 1 && next > 2147483647)
+		return (1);
+	if (sign == -1 && -next < -2147483648)
+		return (1);
+	return (0);
+}
+
+/*
+** Versione migliorata di ft_atoi che:
+** 1. Rifiuta input non numerici
+** 2. Gestisce overflow
+** 3. Controlla che l'intera stringa sia valida
+*/
+int	ft_parsed_atoi(const char *str, int *result)
+{
+	long	num;
+	int		sign;
+
+	num = 0;
+	sign = 1;
+	while (is_space(*str))
 		str++;
-	if (*str == '+')
+	if (*str == '+' || *str == '-')
+	{
+		if (*str == '-')
+			sign = -1;
 		str++;
-	while (*str >= '0' && *str <= '9')
-		result = result * 10 + (*str++ - '0');
-	return (result);
+	}
+	if (!is_digit(*str))
+		return (1);  // Errore: primo carattere non è numero
+	while (is_digit(*str))
+	{
+		if (check_overflow(num, *str, sign))
+			return (1);  // Errore: overflow
+		num = num * 10 + (*str - '0');
+		str++;
+	}
+	// Dopo i numeri, devono finire gli spazi o finire la stringa
+	while (is_space(*str))
+		str++;
+	if (*str != '\0')
+		return (1);  // Errore: caratteri non validi dopo i numeri
+	
+	*result = (int)(num * sign);
+	return (0);
 }
 
 
