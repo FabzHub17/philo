@@ -14,7 +14,7 @@
 
 int main(int ac, char **av)
 {
-	t_rules rules;
+	t_table table;
 	t_philo *philos;
 	pthread_t monitor;
 	int i;
@@ -52,28 +52,28 @@ int main(int ac, char **av)
 		return (1);
 	}
 
-	if (init_rules(&rules, ac, av))
+	if (!init_args(&table, ac, av))
 	{
-		printf("Error: initialization failed\n");
+		write(2, "Error: invalid arguments\n", 27);
 		return (1);
 	}
 
-	if (init_philos(&rules, &philos))
+	if (!init_philos(&table, &philos))
 	{
-		cleanup(&rules, philos);
+		cleanup(&table, philos);
 		printf("Error: philosopher initialization failed\n");
 		return (1);
 	}
 
 	i = 0;
-	while (i < rules.num_of_philo)
+	while (i < table.num_of_philo)
 	{
 		if (pthread_create(&philos[i].thread, NULL, philo_routine, &philos[i]) != 0)
 		{
 			// In caso di errore, termina i thread già creati
 			while (--i >= 0)
 				pthread_join(philos[i].thread, NULL);
-			cleanup(&rules, philos);
+			cleanup(&table, philos);
 			printf("Error: thread creation failed\n");
 			return (1);
 		}
@@ -84,12 +84,12 @@ int main(int ac, char **av)
 	pthread_join(monitor, NULL);
 
 	i = 0;
-	while (i < rules.num_of_philo)
+	while (i < table.num_of_philo)
 	{
 		pthread_join(philos[i].thread, NULL);
 		i++;
 	}
 
-	cleanup(&rules, philos);
+	cleanup(&table, philos);
 	return (0);
 }
