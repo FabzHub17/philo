@@ -38,7 +38,7 @@ void	ft_usleep(long ms)
 }
 
 /*
-Perché il check !philo->rules->dead dentro print_state?
+Perché il check !philo->table->dead dentro print_state?
 Evita che messaggi di "is thinking" o "is eating" vengano
 stampati dopo il messaggio di morte. Il print_mutex garantisce 
 che solo un thread alla volta stampi, e il check sul flag blocca i 
@@ -48,13 +48,13 @@ void	print_state(t_philo *philo, char *msg)
 {
 	long	timestamp;
 
-	pthread_mutex_lock(&philo->rules->print_mutex);
-	if (!philo->rules->dead)
+	pthread_mutex_lock(&philo->table->print_mutex);
+	if (!philo->table->dead)
 	{
-		timestamp = get_time_ms() - philo->rules->start_time;
+		timestamp = get_time_ms() - philo->table->start_time;
 		printf("%ld %d %s\n", timestamp, philo->id, msg);
 	}
-	pthread_mutex_unlock(&philo->rules->print_mutex);
+	pthread_mutex_unlock(&philo->table->print_mutex);
 }
 
 static int	is_digit(char c)
@@ -79,16 +79,11 @@ static int	check_overflow(long num, char c, int sign)
 	return (0);
 }
 
-/*
-** Versione migliorata di ft_atoi che:
-** 1. Rifiuta input non numerici
-** 2. Gestisce overflow
-** 3. Controlla che l'intera stringa sia valida
-*/
-int	ft_parsed_atoi(const char *str, int *result)
+int	custom_atoi(char *str)
 {
 	long	num;
 	int		sign;
+	int    res;
 
 	num = 0;
 	sign = 1;
@@ -101,11 +96,11 @@ int	ft_parsed_atoi(const char *str, int *result)
 		str++;
 	}
 	if (!is_digit(*str))
-		return (1);  // Errore: primo carattere non è numero
+		return (-1);  
 	while (is_digit(*str))
 	{
 		if (check_overflow(num, *str, sign))
-			return (1);  // Errore: overflow
+			return (-1);  // Errore: overflow
 		num = num * 10 + (*str - '0');
 		str++;
 	}
@@ -113,10 +108,10 @@ int	ft_parsed_atoi(const char *str, int *result)
 	while (is_space(*str))
 		str++;
 	if (*str != '\0')
-		return (1);  // Errore: caratteri non validi dopo i numeri
+		return (-1);  // Errore: caratteri non validi dopo i numeri
 	
-	*result = (int)(num * sign);
-	return (0);
+	res = (num * sign);
+	return (res);
 }
 
 
