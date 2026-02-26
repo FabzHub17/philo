@@ -12,25 +12,25 @@
 
 #include "philo.h"
 
-static void	destroy_forks(t_rules *rules)
+static void	destroy_forks(t_table *table)
 {
 	int	i;
 
 	i = 0;
-	while (i < rules->num_of_philo)
+	while (i < table->num_of_philo)
 	{
-		pthread_mutex_destroy(&rules->forks[i]);
+		pthread_mutex_destroy(&table->forks[i]);
 		i++;
 	}
-	free(rules->forks);
+	free(table->forks);
 }
 
-static void	destroy_philos(t_rules *rules, t_philo *philos)
+static void	destroy_philos(t_table *table, t_philo *philos)
 {
 	int	i;
 
 	i = 0;
-	while (i < rules->num_of_philo)
+	while (i < table->num_of_philo)
 	{
 		pthread_mutex_destroy(&philos[i].meal_mutex);
 		i++;
@@ -38,12 +38,12 @@ static void	destroy_philos(t_rules *rules, t_philo *philos)
 	free(philos);
 }
 
-void	cleanup(t_rules *rules, t_philo *philos)
+void	cleanup(t_table *table, t_philo *philos)
 {
-	destroy_forks(rules);
-	destroy_philos(rules, philos);
-	pthread_mutex_destroy(&rules->death_mutex);
-	pthread_mutex_destroy(&rules->print_mutex);
+	destroy_forks(table);
+	destroy_philos(table, philos);
+	pthread_mutex_destroy(&table->death_mutex);
+	pthread_mutex_destroy(&table->print_mutex);
 }
 
 /*
