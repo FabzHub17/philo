@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-typedef struct s_rules
+typedef struct s_table
 {
     int  num_of_philo;
     long time_die;
@@ -33,7 +33,7 @@ typedef struct s_rules
     pthread_mutex_t death_mutex;
     pthread_mutex_t print_mutex;
     pthread_mutex_t *forks;
-}   t_rules;
+}   t_table;
 
 typedef struct s_philo
 {
@@ -46,18 +46,18 @@ typedef struct s_philo
     pthread_mutex_t *right_fork;
     pthread_mutex_t meal_mutex;     
 
-    t_rules *rules;
+    t_table *table;
 }   t_philo;
 
 // init.c
-int	init_rules(t_rules *rules, int ac, char **av);
-int	init_philos(t_rules *rules, t_philo **philos);
+int	init_args(t_table *table, int ac, char **av);
+int	init_philos(t_table *table, t_philo **philos);
 
 // utils.c
 long	get_time_ms(void);
 void	ft_usleep(long ms);
 void	print_state(t_philo *philo, char *msg);
-int	ft_atoi(const char *str);
+int	custom_atoi(char *str);
 
 // routine.c
 void *philo_routine(void *arg);
@@ -66,7 +66,7 @@ void *philo_routine(void *arg);
 void	*monitor_routine(void *arg);
 
 // actions.c
-void	cleanup(t_rules *rules, t_philo *philos);
+void	cleanup(t_table *table, t_philo *philos);
 
 
 

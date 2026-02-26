@@ -14,31 +14,15 @@
 
 static int is_dead(t_philo *philo)
 {
-    pthread_mutex_lock(&philo->rules->death_mutex);
-    if (philo->rules->dead)
+    pthread_mutex_lock(&philo->table->death_mutex);
+    if (philo->table->dead)
     {
-        pthread_mutex_unlock(&philo->rules->death_mutex);
+        pthread_mutex_unlock(&philo->table->death_mutex);
         return (1);
     }
-    pthread_mutex_unlock(&philo->rules->death_mutex);
+    pthread_mutex_unlock(&philo->table->death_mutex);
     return (0);
 }
-
-/* static void philo_eat(t_philo *philo)
-{
-    pthread_mutex_lock(philo->left_fork);
-    print_state(philo, "has taken a fork");
-    pthread_mutex_lock(philo->right_fork);
-    print_state(philo, "has taken a fork");
-    print_state(philo, "is eating");
-    pthread_mutex_lock(&philo->meal_mutex);
-    philo->time_of_last_meal = get_time_ms();
-    philo->meals_eaten++;
-    pthread_mutex_unlock(&philo->meal_mutex);
-    ft_usleep(philo->rules->time_eat);
-    pthread_mutex_unlock(philo->left_fork);
-    pthread_mutex_unlock(philo->right_fork);
-} */
 
 /*
 ** Versione per filosofi pari: left -> right
@@ -57,7 +41,7 @@ static void philo_eat_normal(t_philo *philo)
     philo->meals_eaten++;
     pthread_mutex_unlock(&philo->meal_mutex);
     
-    ft_usleep(philo->rules->time_eat);
+    ft_usleep(philo->table->time_eat);
     
     pthread_mutex_unlock(philo->left_fork);
     pthread_mutex_unlock(philo->right_fork);
@@ -81,7 +65,7 @@ static void philo_eat_reverse(t_philo *philo)
     philo->meals_eaten++;
     pthread_mutex_unlock(&philo->meal_mutex);
     
-    ft_usleep(philo->rules->time_eat);
+    ft_usleep(philo->table->time_eat);
     
     pthread_mutex_unlock(philo->right_fork);
     pthread_mutex_unlock(philo->left_fork);
@@ -90,7 +74,7 @@ static void philo_eat_reverse(t_philo *philo)
 static void philo_sleep_think(t_philo *philo)
 {
     print_state(philo, "is sleeping");
-    ft_usleep(philo->rules->time_sleep);
+    ft_usleep(philo->table->time_sleep);
     print_state(philo, "is thinking");
 }
 
@@ -117,7 +101,7 @@ void *philo_routine(void *arg)
     philo = (t_philo *)arg;
     
     // Caso speciale: un solo filosofo
-    if (philo->rules->num_of_philo == 1)
+    if (philo->table->num_of_philo == 1)
     {
         lone_philo(philo);
         return (NULL);

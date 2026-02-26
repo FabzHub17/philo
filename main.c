@@ -19,52 +19,23 @@ int main(int ac, char **av)
 	pthread_t monitor;
 	int i;
 
-	/* 
-	CODICE ORIGINALE
-	
-	if (ac < 5 || ac > 6)
-		return (1);
-	if (init_rules(&rules, ac, av))
-		return (1);
-	if (init_philos(&rules, &philos))
-		return (cleanup(&rules, philos), 1);
-	i = 0;
-	while (i < rules.num_of_philo)
-	{
-		pthread_create(&philos[i].thread, NULL, philo_routine, &philos[i]);
-		i++;
-	}
-	pthread_create(&monitor, NULL, monitor_routine, philos);
-	pthread_join(monitor, NULL);
-	i = 0;
-	while (i < rules.num_of_philo)
-	{
-		pthread_join(philos[i].thread, NULL);
-		i++;
-	}
-	cleanup(&rules, philos);
-	return (0); */
-
 	if (ac < 5 || ac > 6)
 	{
 		printf("Error: wrong number of arguments\n");
 		printf("Usage: ./philo number_of_philosophers time_to_die time_to_eat time_to_sleep [number_of_times_each_philosopher_must_eat]\n");
 		return (1);
 	}
-
 	if (!init_args(&table, ac, av))
 	{
 		write(2, "Error: invalid arguments\n", 27);
 		return (1);
 	}
-
 	if (!init_philos(&table, &philos))
 	{
 		cleanup(&table, philos);
 		printf("Error: philosopher initialization failed\n");
 		return (1);
 	}
-
 	i = 0;
 	while (i < table.num_of_philo)
 	{
