@@ -135,7 +135,7 @@ int init_philos(t_table *table, t_philo **philos)
 			free(*philos);
 			return (0);
 		}
-		assign_forks(table, *philos, i, n);
+		assign_forks(table, philos, i, n);
 		i++;
 	}
 	return (1);

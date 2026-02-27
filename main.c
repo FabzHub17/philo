@@ -27,7 +27,7 @@ int main(int ac, char **av)
 	}
 	if (!init_args(&table, ac, av))
 	{
-		write(2, "Error: invalid arguments\n", 27);
+		printf("Error: invalid arguments\n");
 		return (1);
 	}
 	if (!init_philos(&table, &philos))
