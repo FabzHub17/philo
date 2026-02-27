@@ -48,14 +48,17 @@ static int	check_death(t_philo *philos)
 		pthread_mutex_lock(&philos[i].meal_mutex);
 		time_since_meal = get_time_ms() - philos[i].time_of_last_meal;
 		pthread_mutex_unlock(&philos[i].meal_mutex);
-		
 		if (time_since_meal > table->time_die)  // > invece di >= per sicurezza
 		{
-			set_dead(table);
-			pthread_mutex_lock(&table->print_mutex);
-    		printf("%ld %d died\n", get_time_ms() - table->start_time, philos[i].id);
-    		pthread_mutex_unlock(&table->print_mutex);
-			//print_state(&philos[i], "died");
+			// Ordine: print_mutex PRIMA di death_mutex
+            // (stesso ordine di print_state → no deadlock)
+            pthread_mutex_lock(&table->print_mutex);
+            pthread_mutex_lock(&table->death_mutex);
+            table->dead = 1;
+            pthread_mutex_unlock(&table->death_mutex);
+            printf("%ld %d died\n",
+                get_time_ms() - table->start_time, philos[i].id);
+            pthread_mutex_unlock(&table->print_mutex);
 			return (1);
 		}
 		i++;
