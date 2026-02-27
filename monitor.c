@@ -12,6 +12,11 @@
 
 #include "philo.h"
 
+/*
+** Setta il flag globale di morte nella tabella.
+** Usiamo death_mutex per evitare data race con i filosofi
+** che leggono questo flag nel loro loop (is_dead).
+*/
 static void	set_dead(t_table *table)
 {
     pthread_mutex_lock(&table->death_mutex);
@@ -20,7 +25,15 @@ static void	set_dead(t_table *table)
 }
 
 /*
-** Migliorato: ora passiamo rules invece di un filosofo specifico
+** ORDINE CRITICO PER "died":
+** 1. Prima settiamo dead = 1  → i filosofi smettono di stampare
+** 2. Poi stampiamo "died"     → unico messaggio dopo la morte
+**
+** Perché questo ordine? print_state controlla !table->dead prima di
+** stampare. Se setto dead DOPO aver stampato, un filosofo potrebbe
+** stampare "is eating" tra il nostro "died" e il nostro set_dead → casino!
+** Settando dead PRIMA, siamo sicuri che solo NOI stampiamo "died" e
+** nessun altro filosofo stamperà più nulla.
 */
 static int	check_death(t_philo *philos)
 {
@@ -29,7 +42,7 @@ static int	check_death(t_philo *philos)
 	t_table	*table;
 
 	i = 0;
-	table = philos[0].table;
+	table = philos[0].table;  // Tutti i filosofi condividono la stessa tabella, prendo la prima
 	while (i < table->num_of_philo)
 	{
 		pthread_mutex_lock(&philos[i].meal_mutex);
@@ -38,9 +51,8 @@ static int	check_death(t_philo *philos)
 		
 		if (time_since_meal > table->time_die)  // > invece di >= per sicurezza
 		{
-			// IMPORTANTE: stampa DOPO aver settato dead, così print_state funziona
-			print_state(&philos[i], "died");
 			set_dead(table);
+			print_state(&philos[i], "died");
 			return (1);
 		}
 		i++;
@@ -48,6 +60,11 @@ static int	check_death(t_philo *philos)
 	return (0);
 }
 
+/*
+** Controlla se tutti i filosofi hanno mangiato abbastanza.
+** Ritorna 1 (e stoppa la sim) solo se num_must_eat è specificato
+** e TUTTI hanno raggiunto il numero richiesto.
+*/
 static int	check_all_ate(t_philo *philos)
 {
 	int		i;
@@ -68,8 +85,7 @@ static int	check_all_ate(t_philo *philos)
 		pthread_mutex_unlock(&philos[i].meal_mutex);
 		i++;
 	}
-	// Tutti hanno mangiato abbastanza, ma non sono "morti" — usiamo set_dead solo per fermare la simulazione
-	set_dead(table);  // settiamo dead per fermare i filosofi, anche se non sono "morti"
+	set_dead(table);  // ma cosi non stampa "died" se tutti hanno mangiato? No, perché non è un decesso, è solo la fine della simulazione. I filosofi si fermeranno da soli quando vedranno dead = 1.
 	return (1);
 }
 
@@ -78,36 +94,15 @@ void	*monitor_routine(void *arg)
 	t_philo	*philos;
 
 	philos = (t_philo *)arg;
-	// Piccolo ritardo iniziale per dare tempo ai filosofi di partire
 	usleep(1000);
 	while (1)
 	{
 		if (check_death(philos) || check_all_ate(philos))
 			return (NULL);
-		usleep(500); // Controllo ogni 500µs (entro i 10ms richiesti)
+		usleep(500);
 	}
 	return (NULL);
 }
 
 
-/*
 
-Perché usleep(500) nel loop del monitor?
-Il monitor non deve girare a piena velocità — spreca CPU inutilmente. 
-500 microsecondi è un buon intervallo: abbastanza frequente da rilevare la 
-morte entro i 10ms richiesti dal subject, abbastanza lento da non martellare 
-il processore.
-
-Il trucco di set_dead nel caso check_all_ate
-Quando tutti hanno mangiato abbastanza, usiamo set_dead(table) — 
-passiamo table direttamente. Non stiamo dicendo 
-che il filosofo 1 è morto, stiamo solo settando il flag globale table->dead = 1 
-per fermare la simulazione. I filosofi nel loro loop controllano questo flag e si fermano da soli.
-
-Ordine critico in check_death
-Prima lockiamo meal_mutex, leggiamo time_of_last_meal, poi unlockiamo — 
-poi chiamiamo set_dead che locka death_mutex. Non teniamo mai due mutex 
-lockati contemporaneamente nello stesso thread: questo evita potenziali 
-deadlock tra monitor e filosofi.
-
-*/

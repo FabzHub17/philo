@@ -37,23 +37,30 @@ void	ft_usleep(long ms)
 		usleep(500);
 }
 
+
 /*
-Perché il check !philo->table->dead dentro print_state?
-Evita che messaggi di "is thinking" o "is eating" vengano
-stampati dopo il messaggio di morte. Il print_mutex garantisce 
-che solo un thread alla volta stampi, e il check sul flag blocca i 
-messaggi tardivi. Pulito e thread-safe.
+** print_state: stampa thread-safe dello stato del filosofo.
+**
+** IMPORTANTE: per leggere table->dead usiamo death_mutex,
+** lo stesso mutex che usa set_dead in monitor.c.
+** Prima, il vecchio codice leggeva dead dentro print_mutex →
+** due mutex diversi per la stessa variabile = DATA RACE!
+** Ora: lock death_mutex per leggere dead, poi se ok
+** lock print_mutex per stampare. Pulito e corretto.
 */
 void	print_state(t_philo *philo, char *msg)
 {
 	long	timestamp;
+	int		is_simulation_dead;
 
+	pthread_mutex_lock(&philo->table->death_mutex);
+	is_simulation_dead = philo->table->dead;
+	pthread_mutex_unlock(&philo->table->death_mutex);
+	if (is_simulation_dead)
+		return ;
 	pthread_mutex_lock(&philo->table->print_mutex);
-	if (!philo->table->dead)
-	{
-		timestamp = get_time_ms() - philo->table->start_time;
-		printf("%ld %d %s\n", timestamp, philo->id, msg);
-	}
+	timestamp = get_time_ms() - philo->table->start_time;
+	printf("%ld %d %s\n", timestamp, philo->id, msg);
 	pthread_mutex_unlock(&philo->table->print_mutex);
 }
 
@@ -114,9 +121,3 @@ int	custom_atoi(char *str)
 	return (res);
 }
 
-
-/* UTILS.C  
-get_time_ms → restituisce il timestamp corrente in millisecondi
-ft_usleep → sleep preciso (usleep nativo è inaffidabile per tempi lunghi)
-print_state → stampa thread-safe degli stati
-*/
