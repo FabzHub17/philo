@@ -52,7 +52,10 @@ static int	check_death(t_philo *philos)
 		if (time_since_meal > table->time_die)  // > invece di >= per sicurezza
 		{
 			set_dead(table);
-			print_state(&philos[i], "died");
+			pthread_mutex_lock(&table->print_mutex);
+    		printf("%ld %d died\n", get_time_ms() - table->start_time, philos[i].id);
+    		pthread_mutex_unlock(&table->print_mutex);
+			//print_state(&philos[i], "died");
 			return (1);
 		}
 		i++;

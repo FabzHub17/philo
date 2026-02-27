@@ -53,11 +53,13 @@ void	print_state(t_philo *philo, char *msg)
 	long	timestamp;
 	int		is_simulation_dead;
 
+	// controlla se la simulazione è finita — se sì, non stampare nulla
 	pthread_mutex_lock(&philo->table->death_mutex);
 	is_simulation_dead = philo->table->dead;
 	pthread_mutex_unlock(&philo->table->death_mutex);
 	if (is_simulation_dead)
 		return ;
+	// stampa protetta da print_mutex per evitare messaggi sovrapposti
 	pthread_mutex_lock(&philo->table->print_mutex);
 	timestamp = get_time_ms() - philo->table->start_time;
 	printf("%ld %d %s\n", timestamp, philo->id, msg);

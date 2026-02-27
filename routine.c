@@ -12,6 +12,7 @@
 
 #include "philo.h"
 
+// non deve stampare nulla, solo restituire se il filosofo è morto o no
 static int is_dead(t_philo *philo)
 {
     pthread_mutex_lock(&philo->table->death_mutex);
@@ -100,28 +101,22 @@ void *philo_routine(void *arg)
 
     philo = (t_philo *)arg;
     
-    // Caso speciale: un solo filosofo
     if (philo->table->num_of_philo == 1)
     {
         lone_philo(philo);
         return (NULL);
     }
-    
     // Sfasamento iniziale per ridurre contention
     if (philo->id % 2 == 0)
         ft_usleep(1);
-    
     while (!is_dead(philo))
     {
-        // SCELTA CRITICA: ordine delle forchette in base all'ID
         if (philo->id % 2 == 0)
             philo_eat_normal(philo);   // Pari: left -> right
         else
             philo_eat_reverse(philo);  // Dispari: right -> left
-            
         if (is_dead(philo))
             break;
-            
         philo_sleep_think(philo);
     }
     return (NULL);
