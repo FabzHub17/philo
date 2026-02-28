@@ -40,6 +40,8 @@ static int	launch_philos(t_table *table, t_philo *philos)
 	return (1);
 }
 
+
+
 /*
 ** join_philos: aspetta che tutti i thread dei filosofi finiscano.
 ** Questo è il cuore della soluzione ai data race di Helgrind.
@@ -57,54 +59,70 @@ static void	join_philos(t_table *table, t_philo *philos)
 	}
 }
 
+static int	setup(t_table *table, t_philo **philos, int ac, char **av)
+{
+	if (!init_args(table, ac, av))
+	{
+		printf("Error: invalid arguments\n");
+		return (0);
+	}
+	if (!init_philos(table, philos))
+	{
+		cleanup(table, *philos);
+		printf("Error: philosopher initialization failed");
+		return (0);
+	}
+	return (1);
+}
+
+static int	run_simulation(t_table *table, t_philo *philos)
+{
+	pthread_t	monitor;
+
+	if (!launch_philos(table, philos))
+	{
+		printf("Error: thread creation failed\n");
+		return (0);
+	}
+	if (pthread_create(&monitor, NULL, monitor_routine, philos) != 0)
+	{
+		printf("Error: monitor thread creation failed\n");
+		return (0);
+	}
+	pthread_join(monitor, NULL);
+	join_philos(table, philos);
+	return (1);
+}
+
 int main(int ac, char **av)
 {
 	t_table table;
 	t_philo *philos;
-	pthread_t monitor;
 
 	if (ac < 5 || ac > 6)
 	{
 		printf("Error: wrong number of arguments\n");
 		return (1);
 	}
-	if (!init_args(&table, ac, av))
-	{
-		printf("Error: invalid arguments\n");
+	if (!setup(&table, &philos, ac, av))
 		return (1);
-	}
-	if (!init_philos(&table, &philos))
+	if(!run_simulation(&table, philos))
 	{
 		cleanup(&table, philos);
-		printf("Error: philosopher initialization failed\n");
 		return (1);
 	}
-	if (!launch_philos(&table, philos))
-	{
-		cleanup(&table, philos);
-		printf("Error: thread creation failed\n");
-		return (1);
-	}
-/*
-	** Prima lanciamo il monitor, poi aspettiamo lui.
-	** Il monitor termina quando: un filosofo muore, o tutti hanno mangiato.
-	** Dopo il join del monitor, i filosofi stanno già uscendo (is_dead = 1).
-	** join_philos aspetta che abbiano finito davvero → poi cleanup.
-	*/
-	if (pthread_create(&monitor, NULL, monitor_routine, philos) != 0)
-	{
-		cleanup(&table, philos);
-		printf("Error: monitor thread creation failed\n");
-		return (1);
-	}
-	pthread_join(monitor, NULL);
-	join_philos(&table, philos);
-	/*
-	** A questo punto: monitor terminato + tutti i filosofi terminati.
-	** I mutex non sono più usati da nessuno → cleanup sicuro.
-	*/
-	//usleep(5000);
 	cleanup(&table, philos);
 	return (0);
-
 }
+
+/*
+** Prima lanciamo il monitor, poi aspettiamo lui.
+** Il monitor termina quando: un filosofo muore, o tutti hanno mangiato.
+** Dopo il join del monitor, i filosofi stanno già uscendo (is_dead = 1).
+** join_philos aspetta che abbiano finito davvero → poi cleanup.
+*/
+
+/*
+** A questo punto: monitor terminato + tutti i filosofi terminati.
+** I mutex non sono più usati da nessuno → cleanup sicuro.
+*/
