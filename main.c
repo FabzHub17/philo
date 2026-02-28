@@ -32,15 +32,13 @@ static int	launch_philos(t_table *table, t_philo *philos)
 	i = 0;
 	while (i < table->num_of_philo)
 	{
-		if (pthread_create(&philos[i].thread, NULL,
-				philo_routine, &philos[i]) != 0)
+		if (pthread_create(&philos[i].thread, NULL, philo_routine,
+				&philos[i]) != 0)
 			return (0);
 		i++;
 	}
 	return (1);
 }
-
-
 
 /*
 ** join_philos: aspetta che tutti i thread dei filosofi finiscano.
@@ -94,10 +92,10 @@ static int	run_simulation(t_table *table, t_philo *philos)
 	return (1);
 }
 
-int main(int ac, char **av)
+int	main(int ac, char **av)
 {
-	t_table table;
-	t_philo *philos;
+	t_table	table;
+	t_philo	*philos;
 
 	if (ac < 5 || ac > 6)
 	{
@@ -106,7 +104,7 @@ int main(int ac, char **av)
 	}
 	if (!setup(&table, &philos, ac, av))
 		return (1);
-	if(!run_simulation(&table, philos))
+	if (!run_simulation(&table, philos))
 	{
 		cleanup(&table, philos);
 		return (1);
