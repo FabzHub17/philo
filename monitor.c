@@ -13,9 +13,8 @@
 #include "philo.h"
 
 /*
-** Setta il flag globale di morte nella tabella.
-** Usiamo death_mutex per evitare data race con i filosofi
-** che leggono questo flag nel loro loop (is_dead).
+** set_dead: setta il flag dead in modo thread-safe.
+** Usato da check_all_ate quando tutti hanno mangiato abbastanza.
 */
 static void	set_dead(t_table *table)
 {
@@ -25,15 +24,18 @@ static void	set_dead(t_table *table)
 }
 
 /*
-** ORDINE CRITICO PER "died":
-** 1. Prima settiamo dead = 1  → i filosofi smettono di stampare
-** 2. Poi stampiamo "died"     → unico messaggio dopo la morte
+** check_death: controlla se un filosofo è morto di fame.
 **
-** Perché questo ordine? print_state controlla !table->dead prima di
-** stampare. Se setto dead DOPO aver stampato, un filosofo potrebbe
-** stampare "is eating" tra il nostro "died" e il nostro set_dead → casino!
-** Settando dead PRIMA, siamo sicuri che solo NOI stampiamo "died" e
-** nessun altro filosofo stamperà più nulla.
+** ORDINE DEI LOCK CRITICO per evitare data race con print_state:
+** print_state fa: lock(print_mutex) → lock(death_mutex)
+** check_death fa: lock(print_mutex) → lock(death_mutex)
+** Stesso ordine → nessun deadlock, nessuna race su table->dead.
+**
+** Perché lock(print_mutex) qui?
+** Vogliamo che "died" sia l'UNICO messaggio dopo la morte.
+** Prendendo print_mutex, blocchiamo tutti i filosofi che vogliono
+** stampare, settiamo dead = 1, stampiamo "died", poi rilasciamo.
+** Nessun filosofo può inserire un messaggio tra "died" e dead=1.
 */
 static int	check_death(t_philo *philos)
 {
@@ -50,8 +52,6 @@ static int	check_death(t_philo *philos)
 		pthread_mutex_unlock(&philos[i].meal_mutex);
 		if (time_since_meal > table->time_die)  // > invece di >= per sicurezza
 		{
-			// Ordine: print_mutex PRIMA di death_mutex
-            // (stesso ordine di print_state → no deadlock)
             pthread_mutex_lock(&table->print_mutex);
             pthread_mutex_lock(&table->death_mutex);
             table->dead = 1;
@@ -67,9 +67,9 @@ static int	check_death(t_philo *philos)
 }
 
 /*
-** Controlla se tutti i filosofi hanno mangiato abbastanza.
-** Ritorna 1 (e stoppa la sim) solo se num_must_eat è specificato
-** e TUTTI hanno raggiunto il numero richiesto.
+** check_all_ate: ritorna 1 se tutti i filosofi hanno raggiunto
+** num_must_eat pasti. Setta dead = 1 per fermare i filosofi.
+** Non stampa "died" perché non è una morte — è la fine normale.
 */
 static int	check_all_ate(t_philo *philos)
 {
@@ -100,6 +100,11 @@ void	*monitor_routine(void *arg)
 	t_philo	*philos;
 
 	philos = (t_philo *)arg;
+	/*
+	** Piccola pausa iniziale: i filosofi hanno bisogno di un attimo
+	** per partire e aggiornare time_of_last_meal prima che il monitor
+	** inizi a controllare. 1ms è sufficiente.
+	*/
 	usleep(1000);
 	while (1)
 	{

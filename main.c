@@ -13,18 +13,17 @@
 #include "philo.h"
 
 /*
-** Lancia tutti i thread dei filosofi.
-** Ritorna 0 se almeno un thread non si crea.
-*/
-/*
-** DETACH subito dopo la creazione!
-** Perché? Quando il monitor setta dead = 1 e termina,
-** i filosofi potrebbero essere bloccati su pthread_mutex_lock
-** (aspettando una forchetta). Se facessimo pthread_join,
-** il main si bloccherebbe ad aspettare thread che non si
-** sbloccheranno mai → il tester killa il programma → KO.
-** Con detach, il thread è "libero": quando il processo termina,
-** il sistema pulisce tutto automaticamente.
+** launch_philos: crea i thread dei filosofi.
+** NON facciamo più pthread_detach!
+**
+** Perché il cambio da detach a join?
+** Prima: detach + usleep(5000) nel main → Helgrind vedeva i thread
+** ancora vivi che accedevano a mutex già distrutti dal cleanup → DATA RACE!
+**
+** Ora: join_philos aspetta che TUTTI i thread finiscano davvero.
+** I thread finiscono perché ft_usleep controlla is_dead() ogni 500µs.
+** Quando il monitor setta dead = 1, entro ~1ms tutti i filosofi
+** escono dal loro loop → il join ritorna → cleanup sicuro → zero race.
 */
 static int	launch_philos(t_table *table, t_philo *philos)
 {
@@ -36,10 +35,26 @@ static int	launch_philos(t_table *table, t_philo *philos)
 		if (pthread_create(&philos[i].thread, NULL,
 				philo_routine, &philos[i]) != 0)
 			return (0);
-		pthread_detach(philos[i].thread);
 		i++;
 	}
 	return (1);
+}
+
+/*
+** join_philos: aspetta che tutti i thread dei filosofi finiscano.
+** Questo è il cuore della soluzione ai data race di Helgrind.
+** Solo DOPO che tutti hanno terminato, facciamo cleanup dei mutex.
+*/
+static void	join_philos(t_table *table, t_philo *philos)
+{
+	int	i;
+
+	i = 0;
+	while (i < table->num_of_philo)
+	{
+		pthread_join(philos[i].thread, NULL);
+		i++;
+	}
 }
 
 int main(int ac, char **av)
@@ -71,11 +86,11 @@ int main(int ac, char **av)
 		printf("Error: thread creation failed\n");
 		return (1);
 	}
-	/*
-	** Creiamo il thread monitor e aspettiamo SOLO lui.
+/*
+	** Prima lanciamo il monitor, poi aspettiamo lui.
 	** Il monitor termina quando: un filosofo muore, o tutti hanno mangiato.
-	** Dopo il join del monitor, il main fa cleanup e torna → processo termina.
-	** I thread dei filosofi (detachati) vengono puliti dal sistema operativo.
+	** Dopo il join del monitor, i filosofi stanno già uscendo (is_dead = 1).
+	** join_philos aspetta che abbiano finito davvero → poi cleanup.
 	*/
 	if (pthread_create(&monitor, NULL, monitor_routine, philos) != 0)
 	{
@@ -84,12 +99,12 @@ int main(int ac, char **av)
 		return (1);
 	}
 	pthread_join(monitor, NULL);
+	join_philos(&table, philos);
 	/*
-	** Piccola pausa per dare tempo ai filosofi di stampare
-	** eventuali messaggi in sospeso prima che cleanup distrugga i mutex.
-	** 5ms è sufficiente senza impattare la precisione dei test.
+	** A questo punto: monitor terminato + tutti i filosofi terminati.
+	** I mutex non sono più usati da nessuno → cleanup sicuro.
 	*/
-	usleep(5000);
+	//usleep(5000);
 	cleanup(&table, philos);
 	return (0);
 

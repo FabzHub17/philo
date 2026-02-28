@@ -55,9 +55,10 @@ int	init_philos(t_table *table, t_philo **philos);
 
 // utils.c
 long	get_time_ms(void);
-void	ft_usleep(long ms);
+void	ft_usleep(long ms, t_philo *philo);
 void	print_state(t_philo *philo, char *msg);
 int	custom_atoi(char *str);
+int	is_dead(t_philo *philo);
 
 // routine.c
 void *philo_routine(void *arg);

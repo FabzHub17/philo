@@ -21,20 +21,44 @@ long	get_time_ms(void)
 }
 
 /*
-Perché ft_usleep e non usleep direttamente?
-usleep su Linux può dormire più del dovuto 
-— il kernel non garantisce precisione al millisecondo.
-Con il loop che controlla il tempo ogni 500 microsecondi, 
-sei molto più preciso. 500µs è un buon compromesso tra precisione 
-e consumo CPU.
+** is_dead: lettura thread-safe del flag dead.
+** Usata sia in routine.c che in ft_usleep.
+** Protetta da death_mutex — unico mutex per questa variabile.
 */
-void	ft_usleep(long ms)
+int	is_dead(t_philo *philo)
+{
+	int	dead;
+
+	pthread_mutex_lock(&philo->table->death_mutex);
+	dead = philo->table->dead;
+	pthread_mutex_unlock(&philo->table->death_mutex);
+	return (dead);
+}
+
+/*
+** ft_usleep: sleep preciso che si interrompe se il filosofo muore.
+**
+** Perché controllare is_dead qui dentro?
+** Senza questo, un filosofo bloccato in ft_usleep(time_eat) o
+** ft_usleep(time_sleep) non si sveglia quando dead = 1.
+** Risultato: il main prova a fare join → aspetta → il filosofo
+** è ancora dentro usleep → tutti bloccati.
+**
+** Con questo controllo, il thread esce entro ~500µs dalla morte.
+** Questo permette di usare pthread_join invece di pthread_detach
+** (soluzione più pulita, zero data race sul cleanup).
+*/
+void	ft_usleep(long ms, t_philo *philo)
 {
 	long	start;
 
 	start = get_time_ms();
 	while (get_time_ms() - start < ms)
+	{
+		if (is_dead(philo))
+			return ;
 		usleep(500);
+	}
 }
 
 
