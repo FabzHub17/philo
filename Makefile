@@ -28,10 +28,12 @@ OBJ_DIR	= obj
 
 SRC		= main.c \
 		  init.c \
+		  init_philo.c \
 		  routine.c \
 		  monitor.c \
 		  actions.c \
-		  utils.c
+		  utils.c \
+		  custom_atoi.c
 
 OBJ		= $(SRC:%.c=$(OBJ_DIR)/%.o)
 

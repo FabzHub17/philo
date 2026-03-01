@@ -18,9 +18,9 @@
 */
 static void	set_dead(t_table *table)
 {
-    pthread_mutex_lock(&table->death_mutex);
-    table->dead = 1;
-    pthread_mutex_unlock(&table->death_mutex);
+	pthread_mutex_lock(&table->death_mutex);
+	table->dead = 1;
+	pthread_mutex_unlock(&table->death_mutex);
 }
 
 /*
@@ -44,21 +44,21 @@ static int	check_death(t_philo *philos)
 	t_table	*table;
 
 	i = 0;
-	table = philos[0].table;  // Tutti i filosofi condividono la stessa tabella, prendo la prima
+	table = philos[0].table;
 	while (i < table->num_of_philo)
 	{
 		pthread_mutex_lock(&philos[i].meal_mutex);
 		time_since_meal = get_time_ms() - philos[i].time_of_last_meal;
 		pthread_mutex_unlock(&philos[i].meal_mutex);
-		if (time_since_meal > table->time_die)  // > invece di >= per sicurezza
+		if (time_since_meal > table->time_die)
 		{
-            pthread_mutex_lock(&table->print_mutex);
-            pthread_mutex_lock(&table->death_mutex);
-            table->dead = 1;
-            pthread_mutex_unlock(&table->death_mutex);
-            printf("%ld %d died\n",
-                get_time_ms() - table->start_time, philos[i].id);
-            pthread_mutex_unlock(&table->print_mutex);
+			pthread_mutex_lock(&table->print_mutex);
+			pthread_mutex_lock(&table->death_mutex);
+			table->dead = 1;
+			pthread_mutex_unlock(&table->death_mutex);
+			printf("%ld %d died\n",
+				get_time_ms() - table->start_time, philos[i].id);
+			pthread_mutex_unlock(&table->print_mutex);
 			return (1);
 		}
 		i++;
@@ -91,20 +91,20 @@ static int	check_all_ate(t_philo *philos)
 		pthread_mutex_unlock(&philos[i].meal_mutex);
 		i++;
 	}
-	set_dead(table);  // ma cosi non stampa "died" se tutti hanno mangiato? No, perché non è un decesso, è solo la fine della simulazione. I filosofi si fermeranno da soli quando vedranno dead = 1.
+	set_dead(table);
 	return (1);
 }
 
+/*
+** Piccola pausa iniziale: i filosofi hanno bisogno di un attimo
+** per partire e aggiornare time_of_last_meal prima che il monitor
+** inizi a controllare. 1ms è sufficiente.
+*/
 void	*monitor_routine(void *arg)
 {
 	t_philo	*philos;
 
 	philos = (t_philo *)arg;
-	/*
-	** Piccola pausa iniziale: i filosofi hanno bisogno di un attimo
-	** per partire e aggiornare time_of_last_meal prima che il monitor
-	** inizi a controllare. 1ms è sufficiente.
-	*/
 	usleep(1000);
 	while (1)
 	{
@@ -114,6 +114,3 @@ void	*monitor_routine(void *arg)
 	}
 	return (NULL);
 }
-
-
-

@@ -61,7 +61,6 @@ void	ft_usleep(long ms, t_philo *philo)
 	}
 }
 
-
 /*
 ** print_state: stampa thread-safe dello stato del filosofo.
 **
@@ -89,61 +88,3 @@ void	print_state(t_philo *philo, char *msg)
 	printf("%ld %d %s\n", timestamp, philo->id, msg);
 	pthread_mutex_unlock(&philo->table->print_mutex);
 }
-
-static int	is_digit(char c)
-{
-	return (c >= '0' && c <= '9');
-}
-
-static int	is_space(char c)
-{
-	return (c == ' ' || (c >= 9 && c <= 13));
-}
-
-static int	check_overflow(long num, char c, int sign)
-{
-	long	next;
-
-	next = num * 10 + (c - '0');
-	if (sign == 1 && next > 2147483647)
-		return (1);
-	if (sign == -1 && -next < -2147483648)
-		return (1);
-	return (0);
-}
-
-int	custom_atoi(char *str)
-{
-	long	num;
-	int		sign;
-	int    res;
-
-	num = 0;
-	sign = 1;
-	while (is_space(*str))
-		str++;
-	if (*str == '+' || *str == '-')
-	{
-		if (*str == '-')
-			sign = -1;
-		str++;
-	}
-	if (!is_digit(*str))
-		return (-1);  
-	while (is_digit(*str))
-	{
-		if (check_overflow(num, *str, sign))
-			return (-1);  // Errore: overflow
-		num = num * 10 + (*str - '0');
-		str++;
-	}
-	// Dopo i numeri, devono finire gli spazi o finire la stringa
-	while (is_space(*str))
-		str++;
-	if (*str != '\0')
-		return (-1);  // Errore: caratteri non validi dopo i numeri
-	
-	res = (num * sign);
-	return (res);
-}
-
